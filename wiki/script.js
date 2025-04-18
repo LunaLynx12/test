@@ -88,20 +88,29 @@ function renderTeamList(teams) {
 }
 
 async function loadMarkdownContent() {
-    const hash = window.location.hash.substring(1);
-    const pathParts = hash.split('/').slice(2);
-    const userPath = pathParts.join('/');
+    const hash = window.location.hash.substring(1); // Remove the #
+    const pathParts = hash.split('/').slice(2); // Remove 'wiki' prefix
+
+    const lastPart = pathParts[pathParts.length - 1];
+    const isFile = lastPart.endsWith('.md');
 
     try {
-        const files = await fetchFolderContents(`wiki/${userPath}`);
-        const markdownFiles = files.filter(file =>
-            file.type === 'file' && file.name.endsWith('.md')
-        );
-
-        if (markdownFiles.length > 0) {
-            await renderMarkdownFile(userPath, markdownFiles[0].name);
+        if (isFile) {
+            const fileName = pathParts.pop();
+            const userPath = pathParts.join('/');
+            await renderMarkdownFile(userPath, fileName);
         } else {
-            renderError('No markdown files found for this user.');
+            // Get the list of files for this user
+            const files = await fetchFolderContents(`wiki/${pathParts.join('/')}`);
+            const markdownFiles = files.filter(file =>
+                file.type === 'file' && file.name.endsWith('.md')
+            );
+
+            if (markdownFiles.length > 0) {
+                await renderMarkdownFile(pathParts.join('/'), markdownFiles[0].name);
+            } else {
+                renderError('No markdown files found for this user.');
+            }
         }
     } catch (error) {
         console.error('Error loading markdown content:', error);
